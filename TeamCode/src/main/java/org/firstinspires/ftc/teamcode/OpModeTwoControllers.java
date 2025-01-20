@@ -170,6 +170,11 @@ public class OpModeTwoControllers extends LinearOpMode {
 
 
     }
+
+
+    public void move(double motorPower){
+
+    }
 }
 
 

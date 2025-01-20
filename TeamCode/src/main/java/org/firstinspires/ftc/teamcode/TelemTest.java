@@ -59,10 +59,10 @@ For support, contact tech@gobilda.com
 -Ethan Doak
  */
 
-@Autonomous(name="Coordinate Auton test", group="Linear OpMode")
+@Autonomous(name="Telemetry test", group="Linear OpMode")
 //@Disabled
 
-public class CoordTest extends LinearOpMode {
+public class TelemTest extends LinearOpMode {
 
     GoBildaPinpointDriver odo; // Declare OpMode member for the Odometry Computer
     private DcMotor bottomRight;
@@ -132,39 +132,52 @@ public class CoordTest extends LinearOpMode {
         telemetry.addData("Device Version Number:", odo.getDeviceVersion());
         telemetry.addData("Device Scalar", odo.getYawScalar());
         telemetry.update();
+        Pose2D startingPosition = new Pose2D(DistanceUnit.MM, 0, 0, AngleUnit.DEGREES, 0);
+        odo.setPosition(startingPosition);
+        odo.update();
 
-        Pose2D startingPosition = new Pose2D(DistanceUnit.MM, 100, 200, AngleUnit.DEGREES, 90);
-        Pose2D endPosition = new Pose2D(DistanceUnit.MM, 50, 100, AngleUnit.DEGREES, 45);
         // Wait for the game to start (driver presses START)
         waitForStart();
+        resetRuntime();
+
+        double currentPositionX = odo.getPosX();
+        double targetPositionX = 300;
         double motorPower = 0.3;
 
-        odo.setPosition(startingPosition);
-        double targetPositionX = -50;
-        double targetPositionY = -50;
-        double currentODOPositionX = odo.getPosX();
-        double currentODOPositionY = odo.getPosY();
+
+//        bottomRight.setPower(motorPower);
+//        bottomLeft.setPower(motorPower);
+//        topRight.setPower(motorPower);
+//        topLeft.setPower(motorPower);
 
 
         // run until the end of the match (driver presses STOP)
-        while (currentODOPositionY > targetPositionY) {
-            bottomRight.setPower(motorPower);
-            bottomLeft.setPower(motorPower);
-            topRight.setPower(motorPower);
-            topLeft.setPower(motorPower);
-            odo.getPosY();
+        while (opModeIsActive()) {
             odo.update();
+            currentPositionX = odo.getPosX();
 
-            currentODOPositionY = odo.getPosY();
 
 
             /*
             Request an update from the Pinpoint odometry computer. This checks almost all outputs
             from the device in a single I2C read.
              */
+            odo.update();
+
+            /*
+            Optionally, you can update only the heading of the device. This takes less time to read, but will not
+            pull any other data. Only the heading (which you can pull with getHeading() or in getPosition().
+             */
+            //odo.update(GoBildaPinpointDriver.readData.ONLY_UPDATE_HEADING);
 
 
+            if (gamepad1.a){
+                odo.resetPosAndIMU(); //resets the position to 0 and recalibrates the IMU
+            }
 
+            if (gamepad1.b){
+                odo.recalibrateIMU(); //recalibrates the IMU without resetting position
+            }
 
             /*
             This code prints the loop frequency of the REV Control Hub. This frequency is effected
@@ -210,4 +223,26 @@ public class CoordTest extends LinearOpMode {
             telemetry.update();
 
         }
+//        bottomLeft.setPower(0.5);
+//        sleep(1000);
+//        bottomLeft.setPower(0);
+//
+//        bottomRight.setPower(0.5);
+//        sleep(1000);
+//        bottomRight.setPower(0);
+//
+//        topLeft.setPower(0.5);
+//        sleep(1000);
+//        topLeft.setPower(0);
+//
+//        topRight.setPower(0.5);
+//        sleep(1000);
+//        topRight.setPower(0);
+
+//        Pose2D pos = odo.getPosition();
+//        String data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES));
+//        telemetry.addData("Position", data);
+//        telemetry.addData("Test", "Successful");
+//        telemetry.update();
+        sleep(15000);
     }}
