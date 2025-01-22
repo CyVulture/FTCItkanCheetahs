@@ -26,6 +26,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -69,6 +70,10 @@ public class OdoTest extends LinearOpMode {
     private DcMotor headRight;
     private DcMotor shoulderLeft;
     private DcMotor shoulderRight;
+    private DcMotor armMotor;
+    private DcMotor armSliderMotor;
+    private Servo wrist;
+    private Servo claw;
 
     double oldTime = 0;
 
@@ -81,6 +86,7 @@ public class OdoTest extends LinearOpMode {
 
     double thirdSamplePosX = 1800;
     double inObservationZonePosY = -1700;
+    double toPickUpSpecimenPosY = -1850;
 
 
     @Override
@@ -94,12 +100,18 @@ public class OdoTest extends LinearOpMode {
         headRight = hardwareMap.get(DcMotor.class, "Bottom Left");
         shoulderLeft = hardwareMap.get(DcMotor.class, "Top Right");
         shoulderRight = hardwareMap.get(DcMotor.class, "Top Left");
+        //armMotor: negative power moves it up, and positive power moves it down
+        armMotor = hardwareMap.get(DcMotor.class, "Arm Motor");
+        armSliderMotor = hardwareMap.get(DcMotor.class, "Arm Extension Motor");
+        wrist = hardwareMap.get(Servo.class, "Wrist");
+        claw = hardwareMap.get(Servo.class, "Intake Wheel");
         shoulderRight.setDirection(DcMotor.Direction.REVERSE);
         headRight.setDirection(DcMotor.Direction.REVERSE);
         headLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         headRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         shoulderRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         shoulderLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 
         /*
@@ -166,6 +178,9 @@ public class OdoTest extends LinearOpMode {
         shoulderLeft.setPower(motorPower);
         shoulderRight.setPower(motorPower);
 
+        hangSpecimenOne();
+        extendSliderMotor();
+        moveWristAndClaw();
         fromStartingPositionToSubmsersible();
 
         move(0);
@@ -177,6 +192,7 @@ public class OdoTest extends LinearOpMode {
         sleep(1000);
         moveRight(0.3);
         odo.update();
+//        hangSpecimenOne();
 
 /*After first spike and setting up to put first sample*/
 /*   into the submersible */
@@ -209,6 +225,8 @@ public class OdoTest extends LinearOpMode {
         fixOrientationSouth(true);
         fixOrientationSouth(false);
         move(0);
+        moveBackToPickUpSpecimen();
+
 //        setupForSamplePushByMovingForward();
 //        move(0);
 //        fixOrientation(true);
@@ -241,8 +259,48 @@ public class OdoTest extends LinearOpMode {
         telemetry.update();
         sleep(15000);
     }
+    public void moveWristAndClaw(){
+        wrist.setPosition(0.4);
+        wrist.setPosition(0.0);
+        claw.setPosition(0.5);
+        claw.setPosition(1);
+    }
+    public void hangSpecimenOne() {
+        stopMotors();
+        armMotor.setPower(-0.5);
+        sleep(500);
+        stopArm();
+    }
+    public void extendSliderMotor(){
+        stopMotors();
+        armSliderMotor.setPower(0.5);
+        sleep(500);
+        armSliderMotor.setPower(0);
+    }
+    public void stopArm(){
+        armMotor.setPower(0);
+        armSliderMotor.setPower(0);
+    }
 
 
+    public void moveBackToPickUpSpecimen(){
+        odo.update();
+        double currentPosY = odo.getPosY();
+        while (opModeIsActive() && currentPosY > toPickUpSpecimenPosY){
+            odo.update();
+            moveReverse(0.3);
+            currentPosY = odo.getPosY();
+            Pose2D pos = odo.getPosition();
+            String data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES));
+            telemetry.addData("moving back to collect specimen...", data);
+            telemetry.update();
+        }
+        stopMotors();
+    }
+
+    public void stopMotors() {
+        move(0);
+    }
     public void turnAround(){
         odo.update();
         Pose2D pos = odo.getPosition();
@@ -258,6 +316,8 @@ public class OdoTest extends LinearOpMode {
             telemetry.addData("doing a full turn...", data);
             telemetry.update();
         }
+
+        stopMotors();
     }
     public void pushSampleToObservationZone() {
         odo.update();
@@ -271,7 +331,7 @@ public class OdoTest extends LinearOpMode {
             telemetry.addData("pushing to observation zone...", data);
             telemetry.update();
         }
-        move(0);
+        stopMotors();
         sleep(1000);
     }
 
@@ -288,6 +348,7 @@ public class OdoTest extends LinearOpMode {
             telemetry.addData("after spike moving to right of submersible...", data);
             telemetry.update();
         }
+        stopMotors();
     }
 
     public void setupForSamplePushByMovingForward() {
@@ -302,7 +363,7 @@ public class OdoTest extends LinearOpMode {
             telemetry.addData("setting up for sample push by moving forward...", data);
             telemetry.update();
         }
-        move(0);
+        stopMotors();
     }
 
 
@@ -314,7 +375,7 @@ public class OdoTest extends LinearOpMode {
             moveRight(0.3);
             currentPositionX = odo.getPosX();
         }
-        move(0);
+        stopMotors();
     }
 
 
@@ -339,7 +400,7 @@ public class OdoTest extends LinearOpMode {
             telemetry.update();
 
         }
-        move(0);
+        stopMotors();
     }
     public void setMotorDirection(DcMotorSimple.Direction direction){
         shoulderRight.setDirection(direction);
@@ -439,7 +500,7 @@ public class OdoTest extends LinearOpMode {
         double driftHeadingDegrees = pos.getHeading(AngleUnit.DEGREES);
 
         if (isDriftNegativeDegrees) {
-            while (opModeIsActive() && driftHeadingDegrees < -3){
+            while (opModeIsActive() && driftHeadingDegrees < -3 && driftHeadingDegrees > -178){
                 odo.update();
                 pos = odo.getPosition();
                 rotate(0.2, false);
@@ -452,7 +513,7 @@ public class OdoTest extends LinearOpMode {
             }
         } else {
 
-            while (opModeIsActive() && driftHeadingDegrees > 3){
+            while (opModeIsActive() && driftHeadingDegrees > 3 && driftHeadingDegrees < 178){
                 odo.update();
                 pos = odo.getPosition();
                 rotate(0.2, true);
