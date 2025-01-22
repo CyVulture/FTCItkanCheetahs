@@ -74,13 +74,13 @@ public class OdoTest extends LinearOpMode {
 
     double rightOfSubmersibleX = 940;
     double submersiblePosY = -800;
-    double pastSamplePosY = -2000;
+    double pastSamplePosY = -2400;
     double firstSamplePosX = 1300;
 
     double secondSamplePosX = 1500;
 
     double thirdSamplePosX = 1800;
-    double inObservationZonePosY = -800;
+    double inObservationZonePosY = -1700;
 
 
     @Override
@@ -186,46 +186,51 @@ public class OdoTest extends LinearOpMode {
         odo.update();
         double driftHeadingDegrees = odo.getPosition().getHeading(AngleUnit.DEGREES);
 
-        fixOrientation(true);
+        fixOrientationNorth(true);
 
         odo.update();
 
         setupForSamplePushByMovingForward();
 
-        fixOrientation(true);
+        fixOrientationNorth(true);
 
         odo.update();
         setupForPushOfSampleByMovingSideways(firstSamplePosX);
-        fixOrientation(true);
+//        fixOrientationNorth(true);
         odo.update();
+//        turnAround();
+        fixOrientationSouth(true);
+        move(0);
+        fixOrientationSouth(false);
+        move(0);
 
         pushSampleToObservationZone();
         move(0);
-        fixOrientation(true);
-        fixOrientation(false);
+        fixOrientationSouth(true);
+        fixOrientationSouth(false);
         move(0);
-        setupForSamplePushByMovingForward();
-        move(0);
-        fixOrientation(true);
-        fixOrientation(false);
-        move(0);
-        setupForPushOfSampleByMovingSideways(secondSamplePosX);
-        fixOrientation(true);
-        fixOrientation(false);
-        move(0);
-        pushSampleToObservationZone();
-        fixOrientation(true);
-        fixOrientation(false);
-        move(0);
-        setupForSamplePushByMovingForward();
-        fixOrientation(true);
-        fixOrientation(false);
-        move(0);
-        move(0);
-        setupForPushOfSampleByMovingSideways(thirdSamplePosX);
-        move(0);
-        pushSampleToObservationZone();
-        move(0);
+//        setupForSamplePushByMovingForward();
+//        move(0);
+//        fixOrientation(true);
+//        fixOrientation(false);
+//        move(0);
+//        setupForPushOfSampleByMovingSideways(secondSamplePosX);
+//        fixOrientation(true);
+//        fixOrientation(false);
+//        move(0);
+//        pushSampleToObservationZone();
+//        fixOrientation(true);
+//        fixOrientation(false);
+//        move(0);
+//        setupForSamplePushByMovingForward();
+//        fixOrientation(true);
+//        fixOrientation(false);
+//        move(0);
+//        move(0);
+//        setupForPushOfSampleByMovingSideways(thirdSamplePosX);
+//        move(0);
+//        pushSampleToObservationZone();
+//        move(0);
 
 
 
@@ -238,12 +243,28 @@ public class OdoTest extends LinearOpMode {
     }
 
 
+    public void turnAround(){
+        odo.update();
+        Pose2D pos = odo.getPosition();
+        double currentHeading = pos.getHeading(AngleUnit.DEGREES);
+        double fullTurn = -179;
+        while (opModeIsActive() && currentHeading > fullTurn){
+            odo.update();
+            rotate(0.3, true);
+            pos = odo.getPosition();
+            currentHeading = pos.getHeading(AngleUnit.DEGREES);
+            String data = String.format(Locale.US, "{degrees: %.3f}", pos.getHeading(AngleUnit.DEGREES));
+            data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES));
+            telemetry.addData("doing a full turn...", data);
+            telemetry.update();
+        }
+    }
     public void pushSampleToObservationZone() {
         odo.update();
         double currentPosY = odo.getPosY();
         while (opModeIsActive() && currentPosY < inObservationZonePosY){
             odo.update();
-            moveReverse(0.3);
+            moveForward(0.3);
             currentPosY = odo.getPosY();
             Pose2D pos = odo.getPosition();
             String data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES));
@@ -372,8 +393,44 @@ public class OdoTest extends LinearOpMode {
         shoulderRight.setPower((isRight ? -1 : 1) * motorPower);
         shoulderLeft.setPower((isRight ? 1 : -1) * motorPower);
     }
+    public void fixOrientationSouth(boolean isDriftNegativeDegrees) {
+        odo.update();
+        Pose2D pos = odo.getPosition();
+        String data = String.format(Locale.US, "{degrees: %.3f}", pos.getHeading(AngleUnit.DEGREES));
+        telemetry.addData("fixing orientation south by rotating ...", data);
+        telemetry.update();
+        sleep(1000);
+        double driftHeadingDegrees = pos.getHeading(AngleUnit.DEGREES);
 
-    public void fixOrientation( boolean isDriftNegativeDegrees) {
+        if (isDriftNegativeDegrees) {
+            while (opModeIsActive() && driftHeadingDegrees < 170 && driftHeadingDegrees > 0){
+                odo.update();
+                pos = odo.getPosition();
+                rotate(0.2, false);
+                double angularVelocity = odo.getHeadingVelocity();
+
+                data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f, HV: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES), angularVelocity);
+                telemetry.addData("fixing orientation by rotating left...", data);
+                telemetry.update();
+                driftHeadingDegrees = pos.getHeading(AngleUnit.DEGREES);
+            }
+        } else {
+
+            while (opModeIsActive() && driftHeadingDegrees > -176 && driftHeadingDegrees < 0){
+                odo.update();
+                pos = odo.getPosition();
+                rotate(0.2, true);
+                double angularVelocity = odo.getHeadingVelocity();
+                data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f, HV: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES), angularVelocity);
+                telemetry.addData("fixing orientation by rotating right...", data);
+                telemetry.update();
+                driftHeadingDegrees = pos.getHeading(AngleUnit.DEGREES);
+            }
+
+}
+    }
+
+    public void fixOrientationNorth(boolean isDriftNegativeDegrees) {
         odo.update();
         Pose2D pos = odo.getPosition();
         String data = String.format(Locale.US, "{degrees: %.3f}", pos.getHeading(AngleUnit.DEGREES));
