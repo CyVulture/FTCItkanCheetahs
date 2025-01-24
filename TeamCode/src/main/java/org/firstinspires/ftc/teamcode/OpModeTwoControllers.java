@@ -80,9 +80,9 @@ public class OpModeTwoControllers extends LinearOpMode {
             double pos = wrist.getPosition();
             double offset = 0.005;
             if (gamepad2.dpad_left) {
-                wrist.setPosition(0.4);
+                wrist.setPosition(0.95);
             } else if (gamepad2.dpad_right) {
-                wrist.setPosition(0);
+                wrist.setPosition(0.6);
             }
 
             // intake wheel

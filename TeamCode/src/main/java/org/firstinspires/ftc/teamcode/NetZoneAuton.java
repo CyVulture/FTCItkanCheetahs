@@ -60,10 +60,10 @@ For support, contact tech@gobilda.com
 -Ethan Doak
  */
 
-@Autonomous(name="Odometry Test", group="Linear OpMode")
+@Autonomous(name="Net Zone Autonomous", group="Linear OpMode")
 //@Disabled
 
-public class OdoTest extends LinearOpMode {
+public class NetZoneAuton extends LinearOpMode {
 
     GoBildaPinpointDriver odo; // Declare OpMode member for the Odometry Computer
     private DcMotor headLeft;
@@ -77,14 +77,14 @@ public class OdoTest extends LinearOpMode {
 
     double oldTime = 0;
 
-    double rightOfSubmersibleX = 940;
+    double leftOfSubmersibleX = -1150;
     double submersiblePosY = -800;
     double pastSamplePosY = -2400;
-    double firstSamplePosX = 1300;
+    double firstSamplePosX = -1800;
 
-    double secondSamplePosX = 1500;
+    double secondSamplePosX = -1900;
 
-    double thirdSamplePosX = 1800;
+    double thirdSamplePosX = -1800;
     double inObservationZonePosY = -1700;
     double toPickUpSpecimenPosY = -1850;
 
@@ -195,24 +195,26 @@ public class OdoTest extends LinearOpMode {
         telemetry.addData("Position after first loop", data2);
         telemetry.update();
         sleep(1000);
-        moveRight(0.3);
         odo.update();
 //        hangSpecimenOne();
 
-/*After first spike and setting up to put first sample*/
-/*   into the submersible */
-        afterFirstSpikeToRightOfSubmersible();
+        /*After first spike and setting up to put first sample*/
+        /*   into the submersible */
+        afterFirstSpikeToLeftOfSubmersible();
 
         move(0);
 
-        fixOrientationNorth(true);
+        fixOrientationNorth(false);
         fixOrientationNorth(true);
         setupForSamplePushByMovingForward();
 
 
-
+        fixOrientationSouth(true);
+        move(0);
+        fixOrientationSouth(false);
+        move(0);
         odo.update();
-        setupForPushOfSampleByMovingSideways(firstSamplePosX);
+        setupForPushOfSampleByMovingSideways(firstSamplePosX, 0.2);
 //        fixOrientationNorth(true);
         odo.update();
 //        turnAround();
@@ -221,35 +223,35 @@ public class OdoTest extends LinearOpMode {
         fixOrientationSouth(false);
         move(0);
 
-        pushSampleToObservationZone();
+        setupForSamplePushByMovingForward();
         move(0);
         fixOrientationSouth(true);
         fixOrientationSouth(false);
         move(0);
         moveBackToPickUpSpecimen();
 
-//        setupForSamplePushByMovingForward();
-//        move(0);
-//        fixOrientation(true);
-//        fixOrientation(false);
-//        move(0);
-//        setupForPushOfSampleByMovingSideways(secondSamplePosX);
-//        fixOrientation(true);
-//        fixOrientation(false);
-//        move(0);
-//        pushSampleToObservationZone();
-//        fixOrientation(true);
-//        fixOrientation(false);
-//        move(0);
-//        setupForSamplePushByMovingForward();
-//        fixOrientation(true);
-//        fixOrientation(false);
-//        move(0);
-//        move(0);
-//        setupForPushOfSampleByMovingSideways(thirdSamplePosX);
-//        move(0);
-//        pushSampleToObservationZone();
-//        move(0);
+        setupForSamplePushByMovingBackwards();
+        move(0);
+        fixOrientationSouth(true);
+        fixOrientationSouth(false);
+        move(0);
+        setupForPushOfSampleByMovingSideways(secondSamplePosX);
+        fixOrientationSouth(true);
+        fixOrientationSouth(false);
+        move(0);
+        pushSampleToObservationZone();
+        fixOrientationSouth(true);
+        fixOrientationSouth(false);
+        move(0);
+        setupForSamplePushByMovingBackwards();
+        fixOrientationSouth(true);
+        fixOrientationSouth(false);
+        move(0);
+        move(0);
+        setupForPushOfSampleByMovingSideways(thirdSamplePosX);
+        move(0);
+        pushSampleToObservationZone();
+        move(0);
 
 
 
@@ -349,17 +351,32 @@ public class OdoTest extends LinearOpMode {
         sleep(1000);
     }
 
-    public void afterFirstSpikeToRightOfSubmersible() {
+    public void afterFirstSpikeToLeftOfSubmersible() {
         odo.update();
         double currentPositionX = odo.getPosX();
 
-//      setting it up to the position to the right of submsersible
-        while (opModeIsActive() && currentPositionX < rightOfSubmersibleX) {
+//      setting it up to the position to the left of submsersible
+        while (opModeIsActive() && currentPositionX > leftOfSubmersibleX) {
+            moveLeft(0.3);
             odo.update();
             currentPositionX = odo.getPosX();
             Pose2D pos = odo.getPosition();
             String data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES));
-            telemetry.addData("after spike moving to right of submersible...", data);
+            telemetry.addData("after spike moving to left of submersible...", data);
+            telemetry.update();
+        }
+        stopMotors();
+    }
+    public void setupForSamplePushByMovingBackwards() {
+        odo.update();
+        double currentPosY = odo.getPosY();
+        while (opModeIsActive() && currentPosY > pastSamplePosY){
+            odo.update();
+            moveReverse(0.3);
+            currentPosY = odo.getPosY();
+            Pose2D pos = odo.getPosition();
+            String data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES));
+            telemetry.addData("setting up for sample push by moving forward...", data);
             telemetry.update();
         }
         stopMotors();
@@ -381,15 +398,24 @@ public class OdoTest extends LinearOpMode {
     }
 
 
-    public void setupForPushOfSampleByMovingSideways(double targetPosX) {
+    public void setupForPushOfSampleByMovingSideways(double targetPosX, double motorPower) {
         odo.update();
         double currentPositionX = odo.getPosX();
-        while (opModeIsActive() && currentPositionX < targetPosX){
+        while (opModeIsActive() && currentPositionX > targetPosX){
             odo.update();
-            moveRight(0.3);
+            moveRight(motorPower);
+            Pose2D pos = odo.getPosition();
+            String data = String.format(Locale.US, "{X: %.3f, Y: %.3f, H: %.3f}", pos.getX(DistanceUnit.MM), pos.getY(DistanceUnit.MM), pos.getHeading(AngleUnit.DEGREES));
+            telemetry.addData("setupForPushOfSampleByMovingSideways by moving left ...", data);
+            telemetry.addData("target position...", targetPosX);
+            telemetry.update();
             currentPositionX = odo.getPosX();
+            odo.update();
         }
         stopMotors();
+    }
+    public void setupForPushOfSampleByMovingSideways(double targetPosX) {
+        setupForPushOfSampleByMovingSideways(targetPosX, 0.3);
     }
 
 
